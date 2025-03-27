@@ -186,4 +186,12 @@ Las contribuciones son bienvenidas. Por favor, seguir estos pasos:
 
 ## Licencia
 
-[Especificar la licencia del proyecto] 
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+
+La Licencia MIT es una licencia de software permisiva que permite:
+- Uso comercial
+- Modificación
+- Distribución
+- Uso privado
+
+Sin ninguna garantía y con la única obligación de mantener el aviso de copyright y la licencia. 

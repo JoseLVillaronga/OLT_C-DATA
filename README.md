@@ -95,9 +95,24 @@ python olt_ont_cleaner.py --help
 
 ## Programación con crontab
 
-Para ejecutar el script cada 4 horas, agregar la siguiente línea al crontab:
+### Ejemplo de ejecución cada 4 horas (6 AM a 8 PM)
+Para ejecutar el script cada 4 horas entre las 6:00 y las 20:00 (8 PM), agregar la siguiente línea al crontab:
+
 ```bash
-0 */4 * * * cd /ruta/al/proyecto && /ruta/al/venv/bin/python olt_ont_cleaner.py >> /ruta/al/proyecto/cron.log 2>&1
+0 6,10,14,18 * * * cd /home/jose/OLT_C-DATA && /home/jose/OLT_C-DATA/venv/bin/python olt_ont_cleaner.py >> /home/jose/OLT_C-DATA/cron.log 2>&1
+```
+
+Desglose de la configuración:
+- `0` - Minuto 0 de cada hora
+- `6,10,14,18` - Se ejecutará a las 6:00, 10:00, 14:00 y 18:00
+- `* * *` - Todos los días, todos los meses, todos los días de la semana
+- `cd /home/jose/OLT_C-DATA` - Se posiciona en el directorio del proyecto
+- `/home/jose/OLT_C-DATA/venv/bin/python` - Usa el Python del entorno virtual
+- `>> /home/jose/OLT_C-DATA/cron.log 2>&1` - Guarda tanto la salida estándar como los errores en el archivo cron.log
+
+Para agregar esta línea al crontab:
+```bash
+crontab -e
 ```
 
 ## Estructura de logs

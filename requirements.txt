@@ -1,0 +1,22 @@
+# Archivo de dependencias del proyecto
+# Este archivo contiene todas las dependencias necesarias para el proyecto
+# Para instalar todas las dependencias, ejecutar: pip install -r requirements.txt 
+
+# Conexión SSH y automatización
+paramiko==3.4.0
+netmiko==4.2.0
+
+# Manejo de variables de entorno
+python-dotenv==1.0.1
+
+# Conexión a MongoDB
+pymongo==4.6.1
+
+# Logging y manejo de fechas
+python-dateutil==2.8.2
+pytz==2024.1
+
+# Aplicación web
+flask==2.3.3
+flask-paginate==2022.1.8
+markupsafe==2.1.3 

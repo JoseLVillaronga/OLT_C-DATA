@@ -7,6 +7,7 @@ Este script automatiza el proceso de limpieza de ONTs en una OLT GPON C-Data, pe
 Este proyecto implementa una solución automatizada para la gestión de ONTs (Optical Network Terminals) en una OLT GPON C-Data. El script está diseñado para:
 
 - Eliminar automáticamente todas las ONTs de puertos GPON específicos
+- Eliminar selectivamente solo ONTs offline (desconectadas) de puertos específicos
 - Ejecutarse de manera programada sin intervención manual
 - Mantener un registro detallado de todas las operaciones realizadas
 - Almacenar el historial de operaciones en una base de datos MongoDB
@@ -22,6 +23,7 @@ El script está diseñado para ejecutarse cada 4 horas por defecto, pero puede s
 ## Características
 
 - Eliminación automática de ONTs en puertos GPON especificados
+- Modo offline para eliminar solo ONTs desconectadas
 - Soporte para procesar rangos de puertos o puertos individuales
 - Registro detallado de operaciones en archivo de log
 - Almacenamiento de resultados en MongoDB
@@ -88,6 +90,25 @@ python olt_ont_cleaner.py --ports 1-6
 python olt_ont_cleaner.py --ports 3
 ```
 
+### Modo offline (solo ONTs desconectadas)
+```bash
+# Eliminar solo ONTs offline en todos los puertos predeterminados (1-4)
+python olt_ont_cleaner.py --offline
+
+# Eliminar solo ONTs offline en un rango específico de puertos
+python olt_ont_cleaner.py --ports 1-6 --offline
+
+# Eliminar solo ONTs offline en un puerto específico
+python olt_ont_cleaner.py --ports 3 --offline
+```
+
+En el modo offline:
+- Solo se eliminan ONTs que están desconectadas
+- No se guardan registros en MongoDB
+- El comando ejecutado es `ont delete {puerto} offline-list all` en lugar de `ont delete {puerto} all`
+
+> **IMPORTANTE**: Las operaciones ejecutadas en modo offline **NO aparecerán en la interfaz web**, ya que no se almacenan en MongoDB. Esta es una característica diseñada intencionalmente para mantener la interfaz web limpia y mostrar solo las operaciones completas de limpieza. Si necesita verificar las acciones realizadas en modo offline, consulte los archivos de log (olt_ont_cleaner.log o cron_offline.log).
+
 ### Ver ayuda
 ```bash
 python olt_ont_cleaner.py --help
@@ -110,7 +131,23 @@ Desglose de la configuración:
 - `/home/jose/OLT_C-DATA/venv/bin/python` - Usa el Python del entorno virtual
 - `>> /home/jose/OLT_C-DATA/cron.log 2>&1` - Guarda tanto la salida estándar como los errores en el archivo cron.log
 
-Para agregar esta línea al crontab:
+### Ejemplo de ejecución del modo offline cada 5 minutos durante horario laboral
+Para eliminar ONTs desconectadas de manera más frecuente durante el día, se puede configurar una tarea adicional que ejecute el script en modo offline cada 5 minutos entre las 6:00 y las 18:00:
+
+```bash
+*/5 6-18 * * * cd /home/jose/OLT_C-DATA && /home/jose/OLT_C-DATA/venv/bin/python olt_ont_cleaner.py --offline >> /home/jose/OLT_C-DATA/cron_offline.log 2>&1
+```
+
+Desglose de la configuración:
+- `*/5` - Cada 5 minutos
+- `6-18` - Entre las 6:00 AM y las 6:00 PM
+- `* * *` - Todos los días, todos los meses, todos los días de la semana
+- `--offline` - Ejecuta el script en modo offline (solo elimina ONTs desconectadas)
+- `cron_offline.log` - Guarda los logs en un archivo separado para facilitar su análisis
+
+Esta configuración complementa la tarea principal, permitiendo mantener la red más limpia de manera proactiva al eliminar constantemente dispositivos que se desconectan, sin afectar a los que están operativos.
+
+Para agregar estas líneas al crontab:
 ```bash
 crontab -e
 ```
@@ -119,7 +156,7 @@ crontab -e
 
 Los logs se guardan en dos lugares:
 1. Archivo `olt_ont_cleaner.log`: Contiene el registro detallado de todas las operaciones
-2. MongoDB: Almacena los resultados de cada operación de eliminación
+2. MongoDB: Almacena los resultados de cada operación de eliminación (excepto en modo offline)
 
 ### Formato de logs
 ```
@@ -144,12 +181,25 @@ Documento:
 }
 ```
 
+Nota: En modo offline (con parámetro `--offline`), no se guardan registros en MongoDB.
+
+### Visualización en la interfaz web
+
+La interfaz web (app.py) muestra únicamente los registros almacenados en MongoDB. Esto significa que:
+
+- Todas las operaciones estándar (sin `--offline`) son visibles en la interfaz web
+- Las operaciones realizadas con el parámetro `--offline` NO aparecen en la interfaz web
+- Si se configuran tareas programadas que ejecutan el script en modo offline (por ejemplo, cada 5 minutos), estas ejecuciones no serán visibles en la interfaz
+
+Esta separación es intencional para mantener la interfaz limpia y enfocada en las operaciones completas de limpieza, mientras que las operaciones de mantenimiento continuo en modo offline se registran solo en los archivos de log.
+
 ## Resumen de operación
 
 Al finalizar cada ejecución, el script muestra un resumen con:
 - Total de ONTs eliminadas
 - Desglose por puerto
 - Estado de la operación
+- Indicación de si se ejecutó en modo offline
 
 ## Consideraciones de seguridad
 

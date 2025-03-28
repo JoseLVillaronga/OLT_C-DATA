@@ -77,7 +77,7 @@ def connect_to_olt():
         logger.error(f"Error al conectar con la OLT: {str(e)}")
         raise
 
-def execute_olt_commands(connection, ports):
+def execute_olt_commands(connection, ports, offline_mode=False):
     """Ejecuta los comandos en la OLT"""
     try:
         total_onts_deleted = 0
@@ -105,14 +105,22 @@ def execute_olt_commands(connection, ports):
 
         # Eliminar ONTs en los puertos especificados
         for port in ports:
-            cmd = f'ont delete {port} all'
-            logger.info(f"Ejecutando comando: {cmd}")
-            output = connection.send_command(cmd, expect_string=r'\(y/n\):')
-            logger.debug(f"Salida del comando {cmd}: {output}")
-            
-            # Enviar confirmación 'y'
-            output = connection.send_command('y', expect_string=r'OLT\(config-interface-gpon-0\/0\)#')
-            logger.debug(f"Salida de la confirmación: {output}")
+            # Modificar el comando según si estamos en modo offline o no
+            if offline_mode:
+                cmd = f'ont delete {port} offline-list all'
+                logger.info(f"Ejecutando comando: {cmd}")
+                # Para el modo offline, esperamos directamente el prompt de configuración
+                output = connection.send_command(cmd, expect_string=r'OLT\(config-interface-gpon-0\/0\)#')
+                logger.debug(f"Salida del comando {cmd}: {output}")
+            else:
+                cmd = f'ont delete {port} all'
+                logger.info(f"Ejecutando comando: {cmd}")
+                output = connection.send_command(cmd, expect_string=r'\(y/n\):')
+                logger.debug(f"Salida del comando {cmd}: {output}")
+                
+                # Enviar confirmación 'y' solo para el comando normal
+                output = connection.send_command('y', expect_string=r'OLT\(config-interface-gpon-0\/0\)#')
+                logger.debug(f"Salida de la confirmación: {output}")
             
             # Procesar la salida para obtener el número de ONTs eliminadas
             if 'success:' in output:
@@ -121,8 +129,9 @@ def execute_olt_commands(connection, ports):
                 total_onts_deleted += success_count
                 port_results[port] = success_count
                 
-                # Guardar en MongoDB
-                save_to_mongodb(port, success_count)
+                # Guardar en MongoDB solo si no estamos en modo offline
+                if not offline_mode:
+                    save_to_mongodb(port, success_count)
         
         # Imprimir resumen final
         logger.info("=" * 50)
@@ -132,6 +141,8 @@ def execute_olt_commands(connection, ports):
         logger.info("Desglose por puerto:")
         for port, count in port_results.items():
             logger.info(f"  Puerto {port}: {count} ONTs")
+        if offline_mode:
+            logger.info("Modo offline: No se han guardado registros en MongoDB")
         logger.info("=" * 50)
         
         return total_onts_deleted, port_results
@@ -167,6 +178,9 @@ def main():
         parser.add_argument('--ports', 
                           help='Rango de puertos a procesar (ej: 1-6 o 3)',
                           default=None)
+        parser.add_argument('--offline', 
+                          help='Eliminar solo ONTs offline sin guardar en MongoDB',
+                          action='store_true')
         args = parser.parse_args()
 
         # Cargar variables de entorno
@@ -175,17 +189,24 @@ def main():
         # Determinar qué puertos procesar
         ports_to_process = get_ports_to_process(args)
         
+        # Modo offline
+        offline_mode = args.offline
+        
         logger.info("=" * 50)
         logger.info("INICIANDO PROCESO DE LIMPIEZA DE ONTs")
         logger.info(f"Fecha y hora: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}")
         logger.info(f"Puertos a procesar: {ports_to_process}")
+        if offline_mode:
+            logger.info("Modo: OFFLINE (solo ONTs desconectadas)")
+        else:
+            logger.info("Modo: NORMAL (todas las ONTs)")
         logger.info("=" * 50)
         
         # Conectar a la OLT
         connection = connect_to_olt()
         
         # Ejecutar comandos
-        total_onts, port_results = execute_olt_commands(connection, ports_to_process)
+        total_onts, port_results = execute_olt_commands(connection, ports_to_process, offline_mode)
         
         # Cerrar conexión
         connection.disconnect()

@@ -60,13 +60,13 @@ pip install -r requirements.txt
 Crear un archivo `.env` en la raíz del proyecto con las siguientes variables:
 ```env
 #Datos SSH del OLT C-Data
-SSH_USER=root
-SSH_PASSWORD=admin
-SSH_HOST=192.168.111.100
+SSH_USER=user
+SSH_PASSWORD=password
+SSH_HOST=192.168.1.100
 
 #Datos MongoDB local
-MONGO_USERNAME=Admin
-MONGO_PASSWORD=sloch1618
+MONGO_USERNAME=user
+MONGO_PASSWORD=pasword
 MONGO_HOST=localhost
 MONGO_PORT=27017
 ```
